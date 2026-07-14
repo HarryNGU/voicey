@@ -1,0 +1,26 @@
+# ---- Personal voice data — never publish (this is the whole point of Voicey) ----
+voice_model/
+voice_data/
+xtts_finetune_data/
+xtts_test/
+*.wav
+*.pth
+*.pt
+*.ckpt
+*.onnx
+
+# ---- Python ----
+server/.venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# ---- Node / editor / OS ----
+node_modules/
+.DS_Store
+*.log
+
+# ---- Local env ----
+.env
+*.env

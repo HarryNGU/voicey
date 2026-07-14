@@ -1,0 +1,919 @@
+<title>Voicey · Hear the web in your own voice</title>
+<style>
+  :root{
+    /* light (default) */
+    --paper:#F3F1F8; --surface:#FBFAFD; --raised:#FFFFFF;
+    --ink:#191523; --muted:#6A6380; --faint:#948CA8;
+    --accent:#6A45E4; --accent-2:#8B6DF6; --accent-soft:rgba(106,69,228,.10);
+    --line:rgba(25,21,35,.11); --line-2:rgba(25,21,35,.06);
+    --signal:#DE3E74;
+    /* night bands — fixed across themes (deliberate committed sections) */
+    --night:#120F1E; --night-2:#1B1630; --night-3:#251E3E;
+    --night-ink:#F1EEF8; --night-muted:#ABA3C6; --night-line:rgba(255,255,255,.10);
+    --night-accent:#9F84FF;
+    /* motion */
+    --ease-out:cubic-bezier(0.23,1,0.32,1);
+    --ease-io:cubic-bezier(0.77,0,0.175,1);
+    --ease-drawer:cubic-bezier(0.32,0.72,0,1);
+    --serif:"Charter","Bitstream Charter","Iowan Old Style","Palatino Linotype",Georgia,serif;
+    --sans:"Avenir Next","Avenir","Segoe UI","Helvetica Neue",Arial,sans-serif;
+    --mono:"SF Mono",ui-monospace,Menlo,Consolas,monospace;
+    --maxw:1160px;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --paper:#0E0B17; --surface:#151020; --raised:#191428;
+      --ink:#ECEAF4; --muted:#9C95B2; --faint:#6F6889;
+      --accent:#9B80FF; --accent-2:#B7A2FF; --accent-soft:rgba(155,128,255,.15);
+      --line:rgba(255,255,255,.11); --line-2:rgba(255,255,255,.06);
+    }
+  }
+  :root[data-theme="light"]{
+    --paper:#F3F1F8; --surface:#FBFAFD; --raised:#FFFFFF;
+    --ink:#191523; --muted:#6A6380; --faint:#948CA8;
+    --accent:#6A45E4; --accent-2:#8B6DF6; --accent-soft:rgba(106,69,228,.10);
+    --line:rgba(25,21,35,.11); --line-2:rgba(25,21,35,.06);
+  }
+  :root[data-theme="dark"]{
+    --paper:#0E0B17; --surface:#151020; --raised:#191428;
+    --ink:#ECEAF4; --muted:#9C95B2; --faint:#6F6889;
+    --accent:#9B80FF; --accent-2:#B7A2FF; --accent-soft:rgba(155,128,255,.15);
+    --line:rgba(255,255,255,.11); --line-2:rgba(255,255,255,.06);
+  }
+
+  *{box-sizing:border-box}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);
+    font-size:17px;line-height:1.6;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
+    overflow-x:hidden}
+  ::selection{background:var(--accent-soft);color:var(--ink)}
+  a{color:inherit;text-decoration:none}
+  button{font-family:inherit}
+  :focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:6px}
+
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 28px}
+  .eyebrow{font-family:var(--sans);font-size:.9rem;letter-spacing:0;
+    color:var(--accent);font-weight:600}
+  .serif{font-family:var(--serif)}
+
+  /* ---------- screen router ---------- */
+  .screen{display:none}
+  .screen.active{display:block;animation:screenIn .5s var(--ease-out) both}
+  @keyframes screenIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+  /* ---------- nav ---------- */
+  nav{position:sticky;top:0;z-index:50;background:color-mix(in srgb,var(--paper) 78%,transparent);
+    backdrop-filter:blur(18px) saturate(160%);-webkit-backdrop-filter:blur(18px) saturate(160%);
+    border-bottom:1px solid var(--line-2)}
+  .nav-in{max-width:var(--maxw);margin:0 auto;padding:15px 28px;display:flex;align-items:center;gap:26px}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:600;letter-spacing:-.01em;font-size:1.06rem}
+  .brand canvas{width:26px;height:26px;display:block}
+  .nav-links{display:flex;gap:28px;margin-left:20px}
+  .nav-links a{color:var(--muted);font-size:.94rem;transition:color .2s ease}
+  .nav-links a:hover{color:var(--ink)}
+  .nav-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+  @media (max-width:820px){.nav-links{display:none}}
+
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;cursor:pointer;
+    font-size:.95rem;font-weight:550;padding:11px 18px;border-radius:11px;
+    transition:transform .16s var(--ease-out),background .2s ease,box-shadow .2s ease,color .2s ease}
+  .btn:active{transform:scale(.97)}
+  .btn-solid{background:var(--accent);color:#fff;box-shadow:0 1px 0 rgba(255,255,255,.15) inset,0 8px 22px -12px var(--accent)}
+  .btn-solid:hover{background:var(--accent-2)}
+  .btn-ghost{background:transparent;color:var(--ink)}
+  .btn-ghost:hover{background:var(--accent-soft)}
+  .btn-line{background:transparent;color:var(--ink);border:1px solid var(--line)}
+  .btn-line:hover{border-color:var(--accent);color:var(--accent)}
+  .btn-lg{padding:15px 26px;font-size:1.02rem;border-radius:13px}
+  .btn-block{width:100%}
+
+  /* ---------- hero (night band) ---------- */
+  .hero{position:relative;background:var(--night);color:var(--night-ink);overflow:hidden;isolation:isolate}
+  .hero::before{content:"";position:absolute;inset:0;z-index:-1;
+    background:radial-gradient(120% 90% at 80% -10%,rgba(139,109,246,.30),transparent 55%),
+               radial-gradient(90% 70% at 5% 110%,rgba(120,80,220,.20),transparent 60%)}
+  .hero .wrap{padding-top:96px;padding-bottom:88px}
+  .hero-eyebrow{color:#c8bafc}
+  h1.display{font-family:var(--serif);font-weight:600;font-size:clamp(2.9rem,7.4vw,6.1rem);
+    line-height:.99;letter-spacing:-.032em;margin:.28em 0 0;text-wrap:balance;max-width:16ch}
+  h1.display em{font-style:italic;color:var(--night-accent);
+    /* keep the accent word tied to the voiceprint hue */}
+  .hero-lead{margin:26px 0 0;font-size:clamp(1.08rem,1.7vw,1.32rem);line-height:1.55;
+    color:var(--night-muted);max-width:44ch}
+  .hero-cta{display:flex;gap:12px;margin-top:34px;flex-wrap:wrap}
+  .hero .btn-line{color:var(--night-ink);border-color:var(--night-line)}
+  .hero .btn-line:hover{border-color:var(--night-accent);color:#fff}
+  .trust{margin-top:30px;display:flex;align-items:center;gap:10px;color:var(--night-muted);
+    font-family:var(--sans);font-size:.92rem;letter-spacing:0}
+  .dot{width:6px;height:6px;border-radius:50%;background:#57d68a;box-shadow:0 0 0 4px rgba(87,214,138,.16)}
+
+  /* hero stage: voiceprint + reading demo */
+  .stage{margin-top:56px;border:1px solid var(--night-line);border-radius:20px;
+    background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.015));
+    padding:22px;position:relative;overflow:hidden}
+  .stage-top{display:flex;align-items:center;gap:10px;color:var(--night-muted);
+    font-family:var(--sans);font-size:.86rem;letter-spacing:0;margin-bottom:6px}
+  .stage-top .live{color:var(--signal);display:flex;align-items:center;gap:6px;margin-left:auto}
+  .stage-top .live i{width:7px;height:7px;border-radius:50%;background:var(--signal);
+    box-shadow:0 0 0 0 rgba(222,62,116,.5);animation:pulse 1.8s var(--ease-out) infinite}
+  @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(222,62,116,.45)}70%{box-shadow:0 0 0 9px rgba(222,62,116,0)}100%{box-shadow:0 0 0 0 rgba(222,62,116,0)}}
+  .voiceprint{width:100%;height:96px;display:block}
+  .reader{font-family:var(--serif);font-size:clamp(1.25rem,2.5vw,1.9rem);line-height:1.5;
+    color:#d9d3ee;margin-top:14px;letter-spacing:-.01em}
+  .reader .w{transition:color .25s ease}
+  .reader .w.on{color:#fff}
+  .reader .w.on b{font-weight:inherit;background:linear-gradient(180deg,transparent 62%,rgba(159,132,255,.55) 0);
+    border-radius:2px;padding:0 .05em}
+
+  /* ---------- generic section ---------- */
+  section.band{padding:96px 0}
+  .kicker{display:flex;align-items:baseline;gap:14px;margin-bottom:38px}
+  .kicker h2{font-family:var(--serif);font-weight:600;font-size:clamp(1.9rem,3.6vw,3rem);
+    letter-spacing:-.025em;line-height:1.04;margin:0;text-wrap:balance}
+  .kicker p{color:var(--muted);max-width:40ch;margin:0}
+  .sub{color:var(--muted);max-width:52ch;font-size:1.05rem;margin:.5em 0 0}
+
+  /* process (a true 3-step sequence → numbering is honest) */
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:2px;background:var(--line-2);
+    border:1px solid var(--line);border-radius:18px;overflow:hidden}
+  .step{background:var(--surface);padding:30px 26px 34px}
+  .step .no{font-family:var(--sans);font-size:.86rem;font-weight:600;letter-spacing:0;color:var(--accent)}
+  .step canvas{width:100%;height:56px;display:block;margin:18px 0 16px;opacity:.9}
+  .step h3{font-family:var(--serif);font-weight:600;font-size:1.32rem;letter-spacing:-.015em;margin:0 0 8px}
+  .step p{margin:0;color:var(--muted);font-size:.98rem}
+  @media (max-width:760px){.steps{grid-template-columns:1fr}}
+
+  /* feature blocks */
+  .feat{display:grid;grid-template-columns:1.05fr .95fr;gap:54px;align-items:center;
+    padding:64px 0;border-top:1px solid var(--line-2)}
+  .feat:nth-child(even) .feat-art{order:-1}
+  .feat h3{font-family:var(--serif);font-weight:600;font-size:clamp(1.6rem,2.6vw,2.15rem);
+    letter-spacing:-.02em;line-height:1.08;margin:.4em 0 0}
+  .feat p{color:var(--muted);margin:16px 0 0;font-size:1.05rem;max-width:46ch}
+  .feat-art{background:var(--surface);border:1px solid var(--line);border-radius:18px;
+    padding:26px;min-height:236px;display:flex;flex-direction:column;justify-content:center;gap:14px}
+  @media (max-width:820px){.feat{grid-template-columns:1fr;gap:26px;padding:48px 0}
+    .feat:nth-child(even) .feat-art{order:0}}
+
+  /* small art helpers */
+  .chip-row{display:flex;flex-wrap:wrap;gap:8px}
+  .chip{font-family:var(--mono);font-size:.72rem;letter-spacing:.04em;padding:7px 11px;border-radius:9px;
+    background:var(--accent-soft);color:var(--accent);border:1px solid color-mix(in srgb,var(--accent) 22%,transparent)}
+  .cap-demo{font-family:var(--serif);font-size:1.15rem;line-height:1.5;color:var(--ink)}
+  .cap-demo b{font-weight:inherit;background:var(--accent-soft);border-radius:4px;padding:0 3px}
+  .kv{display:flex;justify-content:space-between;padding:10px 0;border-top:1px solid var(--line-2);
+    font-size:.92rem;color:var(--muted)}
+  .kv:first-child{border-top:0}
+  .kv b{color:var(--ink);font-weight:600}
+  .kv .ok{color:#3fae72;font-family:var(--mono);font-size:.8rem}
+
+  /* manifesto (night band) */
+  .manifesto{background:var(--night);color:var(--night-ink);padding:104px 0;position:relative;overflow:hidden}
+  .manifesto::before{content:"";position:absolute;inset:0;
+    background:radial-gradient(80% 120% at 50% 0%,rgba(139,109,246,.18),transparent 60%)}
+  .manifesto .wrap{position:relative}
+  .manifesto .eyebrow{color:#c8bafc}
+  .manifesto h2{font-family:var(--serif);font-weight:600;font-size:clamp(2.1rem,4.6vw,3.7rem);
+    letter-spacing:-.028em;line-height:1.05;margin:.3em 0 0;max-width:20ch;text-wrap:balance}
+  .manifesto p{color:var(--night-muted);max-width:52ch;font-size:1.1rem;margin:22px 0 0}
+  .man-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:26px;margin-top:48px}
+  .man-grid div{border-top:1px solid var(--night-line);padding-top:16px}
+  .man-grid b{font-family:var(--serif);font-size:1.2rem;font-weight:600;display:block}
+  .man-grid span{color:var(--night-muted);font-size:.92rem}
+  @media (max-width:720px){.man-grid{grid-template-columns:1fr;gap:8px}}
+
+  /* closing */
+  .closer{padding:104px 0;text-align:center}
+  .closer h2{font-family:var(--serif);font-weight:600;font-size:clamp(2.2rem,4.8vw,3.6rem);
+    letter-spacing:-.028em;line-height:1.03;margin:.2em auto 0;max-width:16ch;text-wrap:balance}
+  .closer p{color:var(--muted);max-width:40ch;margin:18px auto 0}
+  .closer .hero-cta{justify-content:center}
+
+  footer{border-top:1px solid var(--line);padding:40px 0 56px}
+  .foot-in{display:flex;align-items:center;gap:18px;flex-wrap:wrap;color:var(--muted);font-size:.9rem}
+  .foot-in .brand{color:var(--ink)}
+  .foot-links{margin-left:auto;display:flex;gap:22px}
+  .foot-links a:hover{color:var(--ink)}
+
+  /* reveal */
+  .rise{opacity:0;transform:translateY(18px)}
+  .rise.in{opacity:1;transform:none;transition:opacity .7s var(--ease-out),transform .7s var(--ease-out)}
+
+  /* ---------- auth ---------- */
+  #login .auth{min-height:100vh;display:grid;grid-template-columns:1.05fr .95fr}
+  .auth-brand{background:var(--night);color:var(--night-ink);padding:48px;display:flex;flex-direction:column;
+    position:relative;overflow:hidden}
+  .auth-brand::before{content:"";position:absolute;inset:0;
+    background:radial-gradient(90% 70% at 20% 90%,rgba(139,109,246,.26),transparent 60%)}
+  .auth-brand .top{position:relative;display:flex;align-items:center;gap:10px;font-weight:600}
+  .auth-brand .mid{position:relative;margin-top:auto;margin-bottom:auto}
+  .auth-brand canvas.vp{width:min(420px,100%);height:120px;display:block;margin-bottom:26px}
+  .auth-brand h2{font-family:var(--serif);font-weight:600;font-size:clamp(1.9rem,2.6vw,2.5rem);
+    letter-spacing:-.02em;line-height:1.1;max-width:16ch;margin:0}
+  .auth-brand .q{position:relative;color:var(--night-muted);font-size:.86rem;font-family:var(--mono);letter-spacing:.04em}
+  .auth-form{background:var(--paper);display:flex;align-items:center;justify-content:center;padding:40px}
+  .auth-card{width:100%;max-width:380px}
+  .auth-card h1{font-family:var(--serif);font-weight:600;font-size:2rem;letter-spacing:-.02em;margin:0 0 6px}
+  .auth-card .lede{color:var(--muted);margin:0 0 28px}
+  .field{margin-bottom:14px}
+  .field label{display:block;font-size:.82rem;color:var(--muted);margin-bottom:6px;font-weight:550}
+  .field input{width:100%;padding:13px 14px;border-radius:11px;border:1px solid var(--line);
+    background:var(--raised);color:var(--ink);font-size:.98rem;font-family:inherit;transition:border-color .2s ease,box-shadow .2s ease}
+  .field input:focus{outline:0;border-color:var(--accent);box-shadow:0 0 0 4px var(--accent-soft)}
+  .row-between{display:flex;justify-content:space-between;align-items:center;margin:6px 0 20px}
+  .row-between a{color:var(--accent);font-size:.86rem}
+  .divider{display:flex;align-items:center;gap:14px;color:var(--faint);font-size:.78rem;margin:20px 0;
+    font-family:var(--mono);letter-spacing:.1em}
+  .divider::before,.divider::after{content:"";height:1px;background:var(--line);flex:1}
+  .oauth{display:flex;flex-direction:column;gap:10px}
+  .swap{text-align:center;color:var(--muted);font-size:.9rem;margin-top:24px}
+  .swap a{color:var(--accent);font-weight:550}
+  .backlink{position:relative;color:var(--night-muted);font-size:.86rem;display:inline-flex;gap:6px;align-items:center}
+  .auth-brand .top a.backlink:hover{color:#fff}
+  @media (max-width:840px){#login .auth{grid-template-columns:1fr}.auth-brand{display:none}}
+
+  /* ---------- onboarding ---------- */
+  #onboarding{min-height:100vh;display:flex;flex-direction:column;background:var(--night);color:var(--night-ink)}
+  #onboarding::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+    background:radial-gradient(80% 60% at 70% 0%,rgba(139,109,246,.20),transparent 55%),
+               radial-gradient(70% 60% at 0% 100%,rgba(110,80,220,.14),transparent 55%)}
+  .ob-top{position:relative;z-index:1;display:flex;align-items:center;gap:14px;padding:22px 28px}
+  .ob-top .brand{color:var(--night-ink)}
+  .ob-steps{margin-left:auto;display:flex;gap:8px}
+  .ob-steps i{width:34px;height:4px;border-radius:2px;background:var(--night-line);transition:background .4s var(--ease-out)}
+  .ob-steps i.done{background:var(--night-accent)}
+  .ob-body{position:relative;z-index:1;flex:1;display:flex;align-items:center;justify-content:center;padding:24px}
+  .ob-card{width:100%;max-width:560px;text-align:center}
+  .ob-step{display:none}
+  .ob-step.active{display:block;animation:obIn .5s var(--ease-out) both}
+  @keyframes obIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+  .ob-card .eyebrow{color:#c8bafc;justify-content:center}
+  .ob-card h2{font-family:var(--serif);font-weight:600;font-size:clamp(2rem,4vw,3rem);
+    letter-spacing:-.025em;line-height:1.05;margin:.35em 0 0;text-wrap:balance}
+  .ob-card .p{color:var(--night-muted);font-size:1.08rem;margin:16px auto 0;max-width:42ch}
+  .ob-vp{width:min(460px,100%);height:130px;display:block;margin:34px auto 8px}
+  .ob-prompt{font-family:var(--serif);font-size:clamp(1.3rem,3vw,1.9rem);line-height:1.45;color:#e7e1f7;
+    margin:8px auto 0;max-width:22ch;letter-spacing:-.01em}
+  .ob-prompt .w.on b{font-weight:inherit;background:linear-gradient(180deg,transparent 62%,rgba(159,132,255,.55) 0);border-radius:2px;padding:0 .05em}
+  .rec{margin:30px auto 0;display:inline-flex;align-items:center;gap:11px;padding:14px 24px;border-radius:999px;
+    border:1px solid var(--night-line);background:rgba(255,255,255,.04);color:var(--night-ink);cursor:pointer;
+    font-size:1rem;font-weight:550;transition:transform .16s var(--ease-out),background .2s ease,border-color .2s ease}
+  .rec:active{transform:scale(.97)}
+  .rec .rd{width:12px;height:12px;border-radius:50%;background:var(--signal);transition:border-radius .25s var(--ease-out),transform .2s}
+  .rec.recording{border-color:var(--signal)}
+  .rec.recording .rd{border-radius:3px;transform:scale(.8)}
+  .ob-timer{font-family:var(--mono);color:var(--night-muted);font-size:.82rem;letter-spacing:.1em;margin-top:14px;height:1em}
+  .track{width:min(420px,100%);height:6px;border-radius:3px;background:var(--night-line);margin:34px auto 0;overflow:hidden}
+  .track i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--night-accent),#c8bafc);
+    border-radius:3px;transition:width .2s linear}
+  .ob-list{list-style:none;padding:0;margin:26px auto 0;max-width:360px;text-align:left}
+  .ob-list li{display:flex;gap:12px;align-items:flex-start;padding:11px 0;border-top:1px solid var(--night-line);
+    color:var(--night-muted);font-size:.96rem}
+  .ob-list li b{color:var(--night-ink);font-weight:600}
+  .ob-list li:first-child{border-top:0}
+  .ob-list .mk{color:var(--night-accent);font-family:var(--mono);margin-top:2px}
+  #acctForm{max-width:340px;margin:26px auto 0;text-align:left}
+  #acctForm .field label{color:var(--night-muted)}
+  #acctForm .field input{background:rgba(255,255,255,.06);border-color:var(--night-line);color:var(--night-ink)}
+  #acctForm .field input:focus{border-color:var(--night-accent);box-shadow:0 0 0 4px rgba(159,132,255,.18)}
+  .ob-nav{position:relative;z-index:1;display:flex;align-items:center;gap:12px;justify-content:center;padding:14px 24px 40px}
+  #onboarding .btn-line{color:var(--night-ink);border-color:var(--night-line)}
+  #onboarding .btn-line:hover{border-color:var(--night-accent);color:#fff}
+  .ob-skip{color:var(--night-muted);font-size:.86rem;background:none;border:0;cursor:pointer}
+  .ob-skip:hover{color:var(--night-ink)}
+
+  @media (prefers-reduced-motion:reduce){
+    *{animation-duration:.001ms !important;animation-iteration-count:1 !important}
+    .rise{opacity:1;transform:none;transition:none}
+    .screen.active{animation:none}
+  }
+</style>
+
+<!-- ================= LANDING ================= -->
+<div id="landing" class="screen active">
+  <nav>
+    <div class="nav-in">
+      <a class="brand" href="#" data-go="landing"><canvas data-vp="mark" width="52" height="52"></canvas> Voicey</a>
+      <div class="nav-links">
+        <a href="#how">How it works</a>
+        <a href="#access">Accessibility</a>
+        <a href="#private">Private by design</a>
+      </div>
+      <div class="nav-right">
+        <button class="btn btn-ghost" data-go="login">Sign in</button>
+        <button class="btn btn-solid" data-go="onboarding">Get Voicey</button>
+      </div>
+    </div>
+  </nav>
+
+  <header class="hero">
+    <div class="wrap">
+      <div class="eyebrow hero-eyebrow rise">Reading, minus the strain</div>
+      <h1 class="display rise">Hear the web in <em>your own</em> voice.</h1>
+      <p class="hero-lead rise">Voicey reads any page out loud in a voice cloned from yours, lighting up each word as it goes. For long days, tired eyes, dyslexia, or low vision, it turns reading into listening. All of it stays on your Mac.</p>
+      <div class="hero-cta rise">
+        <button class="btn btn-solid btn-lg" data-go="onboarding">Make your voice</button>
+        <button class="btn btn-line btn-lg" data-go="login">I already have Voicey</button>
+      </div>
+      <div class="trust rise"><span class="dot"></span> Everything happens on your Mac. Nothing is uploaded.</div>
+
+      <div class="stage rise">
+        <div class="stage-top">Now reading · your voice
+          <span class="live"><i></i> reading</span>
+        </div>
+        <canvas class="voiceprint" data-vp="hero"></canvas>
+        <p class="reader" id="heroReader"></p>
+      </div>
+    </div>
+  </header>
+
+  <!-- process: a genuine 3-step sequence -->
+  <section class="band" id="how">
+    <div class="wrap">
+      <div class="kicker rise">
+        <h2>Your voice, in three minutes.</h2>
+        <p>You read a little. It listens once. Then it reads everything back.</p>
+      </div>
+      <div class="steps">
+        <div class="step rise"><div class="no">Step one</div><canvas data-vp="s1" width="600" height="112"></canvas>
+          <h3>Read a few lines</h3><p>Speak six short sentences into your Mac. No studio, no retakes, no second take unless you want one.</p></div>
+        <div class="step rise"><div class="no">Step two</div><canvas data-vp="s2" width="600" height="112"></canvas>
+          <h3>It learns your voice</h3><p>The model trains on your machine. Your recordings stay on your machine. There is no upload step.</p></div>
+        <div class="step rise"><div class="no">Step three</div><canvas data-vp="s3" width="600" height="112"></canvas>
+          <h3>Press play on anything</h3><p>Open any article, hit play, and lean back. Voicey reads it in the voice you just made.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- features -->
+  <section class="band" id="voices" style="padding-top:12px">
+    <div class="wrap">
+      <div class="feat">
+        <div>
+          <div class="eyebrow rise">Your own voice</div>
+          <h3 class="rise">It sounds like you, because it is you.</h3>
+          <p class="rise">Other readers hand you a stranger's voice. Voicey gives you your own, with your pace and the way you actually say things. After a few minutes you forget it isn't you doing the reading.</p>
+        </div>
+        <div class="feat-art rise">
+          <canvas data-vp="f1" width="800" height="120" style="width:100%;height:120px;display:block"></canvas>
+          <div class="chip-row"><span class="chip">your timbre</span><span class="chip">natural pacing</span><span class="chip">no robot hum</span></div>
+        </div>
+      </div>
+
+      <div class="feat">
+        <div>
+          <div class="eyebrow rise">Follow along</div>
+          <h3 class="rise">Every word lights up as it's read.</h3>
+          <p class="rise">The line you're hearing is highlighted on the page, word by word. Look down and you're exactly where the voice is, so reading and listening stay in step.</p>
+        </div>
+        <div class="feat-art rise">
+          <p class="cap-demo" id="featReader"></p>
+        </div>
+      </div>
+
+      <div class="feat" id="access">
+        <div>
+          <div class="eyebrow rise">Built for how you read</div>
+          <h3 class="rise">Kinder on eyes that get tired.</h3>
+          <p class="rise">Reading is hard work for a lot of people. Voicey was made with that in mind: slow it down or speed it up, read captions in a dyslexia-friendly type at the size you need, and drive the whole thing from the keyboard or your screen reader.</p>
+        </div>
+        <div class="feat-art rise">
+          <div class="kv"><span>Pace</span><b>0.6× to 2×, your call</b></div>
+          <div class="kv"><span>Caption text</span><b>Large, high contrast</b></div>
+          <div class="kv"><span>Reading type</span><b>Dyslexia-friendly option</b></div>
+          <div class="kv"><span>Hands-free</span><span class="ok">Keyboard + VoiceOver</span></div>
+        </div>
+      </div>
+
+      <div class="feat" id="captions">
+        <div>
+          <div class="eyebrow rise">Live captions</div>
+          <h3 class="rise">Turn any video into text, in your language.</h3>
+          <p class="rise">Point Voicey at a playing video and it writes live captions of the audio. Pick English or Tiếng Việt and it translates as it listens, all on your Mac.</p>
+        </div>
+        <div class="feat-art rise">
+          <div class="chip-row" style="margin-bottom:14px"><span class="chip">EN → EN</span><span class="chip">FR → EN</span><span class="chip">EN → VI</span></div>
+          <p class="cap-demo">“The best ideas arrive when you <b>stop</b> forcing them.”</p>
+          <p class="cap-demo" style="color:var(--muted);font-size:1rem">“Ý tưởng hay đến khi bạn <b>ngừng</b> ép chúng.”</p>
+        </div>
+      </div>
+
+      <div class="feat" id="private">
+        <div>
+          <div class="eyebrow rise">Private by design</div>
+          <h3 class="rise">Off your Mac only if you say so.</h3>
+          <p class="rise">By default nothing leaves your machine. If you want your voice on a second device, turn on sync and it's locked with a key only you hold, so the file we store is one we can't open. Either way, no server ever hears what you read.</p>
+        </div>
+        <div class="feat-art rise">
+          <div class="kv"><span>Voice model</span><b>On your Mac</b></div>
+          <div class="kv"><span>Sync</span><b>Off by default</b></div>
+          <div class="kv"><span>If you turn it on</span><b>Encrypted, only you hold the key</b></div>
+          <div class="kv"><span>Pages you read</span><span class="ok">Never transmitted</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- manifesto -->
+  <section class="manifesto">
+    <div class="wrap">
+      <div class="eyebrow rise">The whole point</div>
+      <h2 class="rise">Nothing you read leaves your Mac.</h2>
+      <p class="rise">Every model runs locally, and every second of audio is made on your own machine. Your voice is personal, so it only ever leaves this Mac if you ask it to, and only locked in a way that we cannot open.</p>
+      <div class="man-grid">
+        <div class="rise"><b>Local first</b><span>The reading voice and the captions both run offline.</span></div>
+        <div class="rise"><b>Sync only if you want it</b><span>Turn it on and your voice is encrypted so only you can unlock it.</span></div>
+        <div class="rise"><b>No subscription</b><span>It's yours once it's on your machine. Full stop.</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="closer">
+    <div class="wrap">
+      <div class="eyebrow rise" style="justify-content:center;display:flex">Ready when you are</div>
+      <h2 class="rise">Start with your voice.</h2>
+      <p class="rise">Record six lines. Voicey reads the rest of the internet back to you, in a voice you'll know the second you hear it.</p>
+      <div class="hero-cta rise">
+        <button class="btn btn-solid btn-lg" data-go="onboarding">Make your voice</button>
+        <button class="btn btn-line btn-lg" data-go="login">Sign in</button>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="wrap foot-in">
+      <a class="brand" href="#" data-go="landing"><canvas data-vp="markf" width="52" height="52"></canvas> Voicey</a>
+      <span style="color:var(--faint)">Made for people who read too much.</span>
+      <div class="foot-links">
+        <a href="#how">How it works</a>
+        <a href="#private">Privacy</a>
+        <a href="#" data-go="login">Sign in</a>
+      </div>
+    </div>
+  </footer>
+</div>
+
+<!-- ================= LOGIN ================= -->
+<div id="login" class="screen">
+  <div class="auth">
+    <div class="auth-brand">
+      <div class="top">
+        <a class="backlink" href="#" data-go="landing">← Back</a>
+      </div>
+      <div class="mid">
+        <canvas class="vp" data-vp="auth" width="840" height="240"></canvas>
+        <h2>Welcome back. Your voice is right where you left it.</h2>
+      </div>
+      <div class="q">it never went anywhere else</div>
+    </div>
+    <div class="auth-form">
+      <div class="auth-card">
+        <h1 id="authTitle">Sign in</h1>
+        <p class="lede" id="authLede">Only for the app and optional backup. Your voice stays on your Mac.</p>
+        <form id="authForm" novalidate>
+          <div class="field">
+            <label for="email">Email</label>
+            <input id="email" type="email" autocomplete="email" placeholder="you@studio.com" />
+          </div>
+          <div class="field">
+            <label for="pw">Password</label>
+            <input id="pw" type="password" autocomplete="current-password" placeholder="••••••••••" />
+          </div>
+          <div class="row-between">
+            <span style="font-size:.84rem;color:var(--muted)">Stay on this Mac</span>
+            <a href="#" onclick="return false">Forgot password?</a>
+          </div>
+          <button type="submit" class="btn btn-solid btn-block btn-lg">Continue</button>
+        </form>
+        <div class="divider">OR</div>
+        <div class="oauth">
+          <button class="btn btn-line btn-block" data-go="onboarding"> Continue with Apple</button>
+          <button class="btn btn-line btn-block" data-go="onboarding">Continue with a passkey</button>
+        </div>
+        <p class="swap" id="authSwap">New here? <a href="#" id="authToggle">Create your voice</a></p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= ONBOARDING ================= -->
+<div id="onboarding" class="screen">
+  <div class="ob-top">
+    <span class="brand"><canvas data-vp="marko" width="52" height="52"></canvas> Voicey</span>
+    <div class="ob-steps">
+      <i data-si="0"></i><i data-si="1"></i><i data-si="2"></i><i data-si="3"></i><i data-si="4"></i>
+    </div>
+  </div>
+
+  <div class="ob-body">
+    <div class="ob-card">
+      <!-- step 0 -->
+      <div class="ob-step active" data-step="0">
+        <div class="eyebrow">Step 1 of 5 · about two minutes</div>
+        <h2>Let's make your voice.</h2>
+        <p class="p">You'll read six short lines out loud. Voicey listens once, learns how you sound, and from then on reads anything back to you, all on this Mac.</p>
+        <canvas class="ob-vp" data-vp="ob0"></canvas>
+        <button class="ob-skip" data-go="landing" style="margin-top:18px">Learn about Voicey first</button>
+      </div>
+      <!-- step 1: record (real microphone) -->
+      <div class="ob-step" data-step="1">
+        <div class="eyebrow">Record · line <span id="recLine">1</span> of 6</div>
+        <h2>Read this out loud.</h2>
+        <canvas class="ob-vp" data-vp="obrec"></canvas>
+        <p class="ob-prompt" id="obPrompt"></p>
+        <button class="rec" id="recBtn"><span class="rd"></span> <span id="recLabel">Start recording</span></button>
+        <div class="ob-timer" id="recTimer"></div>
+      </div>
+      <!-- step 2: crafting -->
+      <div class="ob-step" data-step="2">
+        <div class="eyebrow">On your machine</div>
+        <h2>Crafting your voice.</h2>
+        <p class="p" id="craftMsg">Learning your tone and pace, locally, with nothing uploaded.</p>
+        <div class="track"><i id="craftBar"></i></div>
+        <div class="ob-timer" id="craftPct">0%</div>
+      </div>
+      <!-- step 3: ready -->
+      <div class="ob-step" data-step="3">
+        <div class="eyebrow">Your voice is ready</div>
+        <h2>Now, listen.</h2>
+        <canvas class="ob-vp" data-vp="ob3"></canvas>
+        <p class="ob-prompt" id="obReady"></p>
+        <ul class="ob-list">
+          <li><span class="mk">↳</span><span>Open any article and press <b>play</b> to hear it in your voice.</span></li>
+          <li><span class="mk">↳</span><span>Hit <b>CC</b> on a video for live captions, in English or Tiếng Việt.</span></li>
+          <li><span class="mk">↳</span><span>Everything you just made lives <b>only on this Mac</b>.</span></li>
+        </ul>
+      </div>
+      <!-- step 4: optional account (never gates the voice) -->
+      <div class="ob-step" data-step="4">
+        <div class="eyebrow">Optional</div>
+        <h2>Want it on another device?</h2>
+        <p class="p">Your voice already works on this Mac. Add an email only if you'd like it on a second machine. If you do, it syncs locked with a key only you hold, so what we store is a file we can't open. Skip this and it never leaves this Mac.</p>
+        <form id="acctForm" autocomplete="off">
+          <div class="field"><label for="obEmail">Email</label>
+            <input id="obEmail" type="email" placeholder="you@wherever.com" /></div>
+          <button type="submit" class="btn btn-solid btn-block btn-lg">Turn on encrypted sync</button>
+        </form>
+        <div class="ob-timer" id="acctMsg"></div>
+        <button class="ob-skip" id="acctSkip" style="margin-top:16px">No thanks, keep it only on this Mac</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="ob-nav">
+    <button class="btn btn-line" id="obBack">Back</button>
+    <button class="btn btn-solid btn-lg" id="obNext">Continue</button>
+    <button class="ob-skip" data-go="landing">Exit</button>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+  var reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  /* ---------- Voiceprint: animated waveform on a canvas ---------- */
+  var prints = [];
+  function Voiceprint(canvas, opts){
+    opts = opts || {};
+    this.c = canvas; this.ctx = canvas.getContext("2d");
+    this.bars = opts.bars || 48;
+    this.level = opts.level==null ? 0.5 : opts.level;   // target energy 0..1
+    this.cur = this.level;
+    this.mode = opts.mode || "wave";                    // wave | mark
+    this.seed = Math.random()*1000;
+    this.phase = 0;
+    this.accent = opts.accent || "159,132,255";
+    this.dead = false; this.onscreen = true;
+    this.resize(); prints.push(this);
+  }
+  Voiceprint.prototype.resize = function(){
+    var r = this.c.getBoundingClientRect();
+    var w = r.width || this.c.width, h = r.height || this.c.height;
+    var dpr = Math.min(devicePixelRatio||1, 2);
+    this.c.width = w*dpr; this.c.height = h*dpr;
+    this.ctx.setTransform(dpr,0,0,dpr,0,0);
+    this.w = w; this.h = h;
+  };
+  Voiceprint.prototype.draw = function(dt){
+    var ctx=this.ctx, w=this.w, h=this.h;
+    ctx.clearRect(0,0,w,h);
+    this.cur += (this.level - this.cur) * Math.min(1, dt*6);
+    this.phase += dt * (0.7 + this.cur*1.6);
+    if(this.mode==="mark"){ this.drawMark(); return; }
+    var n=this.bars, gap=w/n, mid=h/2, t=this.phase, s=this.seed;
+    var grad=ctx.createLinearGradient(0,0,w,0);
+    grad.addColorStop(0,"rgba("+this.accent+",0.25)");
+    grad.addColorStop(.5,"rgba("+this.accent+",1)");
+    grad.addColorStop(1,"rgba("+this.accent+",0.25)");
+    ctx.fillStyle=grad;
+    for(var i=0;i<n;i++){
+      var x=i*gap+gap*0.5;
+      var env=Math.sin((i/n)*Math.PI); // taper ends
+      var a=(Math.sin(t*2.1+i*0.5+s)*0.5+0.5);
+      var b=(Math.sin(t*3.7-i*0.31+s*1.7)*0.5+0.5);
+      var amp=(a*0.6+b*0.4)*env*this.cur;
+      var barH=Math.max(2, amp*(h*0.86));
+      var bw=Math.max(2, gap*0.42);
+      rr(ctx, x-bw/2, mid-barH/2, bw, barH, bw/2);
+    }
+  };
+  Voiceprint.prototype.drawMark=function(){
+    var ctx=this.ctx,w=this.w,h=this.h,t=this.phase,s=this.seed;
+    var bars=5, gap=w/(bars+1);
+    ctx.fillStyle="rgba("+this.accent+",1)";
+    ctx.save();
+    // rounded square backing
+    ctx.fillStyle=getComputedStyle(document.documentElement).getPropertyValue('--accent')||"#6A45E4";
+    rr(ctx,1,1,w-2,h-2,w*0.28); ctx.fill();
+    ctx.fillStyle="#fff";
+    for(var i=0;i<bars;i++){
+      var x=gap*(i+1);
+      var env=Math.sin(((i+0.5)/bars)*Math.PI);
+      var amp=(Math.sin(t*2+i*0.7+s)*0.5+0.5)*env*0.7+0.2;
+      var bh=amp*h*0.62, bw=Math.max(2,w*0.075);
+      rr(ctx,x-bw/2,h/2-bh/2,bw,bh,bw/2); ctx.fill();
+    }
+    ctx.restore();
+  };
+  function rr(ctx,x,y,w,h,r){ r=Math.min(r,w/2,h/2);
+    ctx.beginPath();
+    ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);ctx.arcTo(x+w,y+h,x,y+h,r);
+    ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();ctx.fill();
+  }
+
+  var last=performance.now();
+  function loop(now){
+    var dt=Math.min(0.05,(now-last)/1000); last=now;
+    if(!document.hidden){
+      for(var i=0;i<prints.length;i++){ var p=prints[i]; if(!p.dead && p.onscreen) p.draw(dt); }
+    }
+    if(!reduce) requestAnimationFrame(loop);
+  }
+
+  // build prints
+  function vp(sel){ return document.querySelector('[data-vp="'+sel+'"]'); }
+  function initPrints(){
+    document.querySelectorAll('[data-vp]').forEach(function(cv){
+      var key=cv.getAttribute('data-vp');
+      var mode = /mark|markf|marko/.test(key) ? "mark" : "wave";
+      var lvl = key.charAt(0)==='s' ? 0.42 : (key==='hero'||key==='auth'?0.55:0.5);
+      var p = new Voiceprint(cv,{mode:mode, level:lvl, bars: key==='hero'||key==='auth'?64:40});
+      cv._vp=p;
+      if(reduce) p.draw(0.016); // one static frame
+    });
+    // Only animate canvases that are actually on screen — keeps the page light
+    // no matter how many voiceprints exist across the three screens.
+    if("IntersectionObserver" in window && !reduce){
+      var vio=new IntersectionObserver(function(ents){
+        ents.forEach(function(en){ if(en.target._vp) en.target._vp.onscreen=en.isIntersecting; });
+      },{rootMargin:"120px"});
+      document.querySelectorAll('[data-vp]').forEach(function(cv){ cv._vp.onscreen=false; vio.observe(cv); });
+    }
+  }
+
+  /* ---------- word-by-word reader demo ---------- */
+  function makeReader(el, text){
+    if(!el) return null;
+    el.innerHTML="";
+    var words=text.split(" ").map(function(word){
+      var s=document.createElement("span"); s.className="w";
+      s.innerHTML="<b>"+word+"</b> "; el.appendChild(s); return s;
+    });
+    return {words:words, i:-1, set:function(k){
+      if(this.i>=0) this.words[this.i].classList.remove("on");
+      this.i=k; if(k>=0&&k<this.words.length) this.words[k].classList.add("on");
+    }};
+  }
+  var heroText="The best ideas arrive when you stop trying to force them.";
+  var heroReader=makeReader(document.getElementById("heroReader"), heroText);
+  var featReader=makeReader(document.getElementById("featReader"), "Reading and listening, finally in sync.");
+  var heroPrint=null;
+  var readTimer=null;
+  function runReader(reader, print, cb){
+    if(!reader) return; var k=0;
+    if(reduce){ reader.set(Math.floor(reader.words.length/2)); if(print) print.level=0.6; return; }
+    clearInterval(readTimer);
+    readTimer=setInterval(function(){
+      reader.set(k);
+      if(print) print.level = 0.55 + 0.35*Math.abs(Math.sin(k*0.9));
+      k++;
+      if(k>=reader.words.length){ clearInterval(readTimer);
+        setTimeout(function(){ reader.set(-1); if(print) print.level=0.3;
+          setTimeout(function(){ runReader(reader,print,cb); }, 900); }, 700); }
+    }, 240);
+  }
+
+  /* ---------- scroll reveals (staggered, jump-proof) ---------- */
+  function initReveals(){
+    var pending=[].slice.call(document.querySelectorAll('#landing .rise'));
+    if(reduce){ pending.forEach(function(e){e.classList.add('in')}); return; }
+    function reveal(){
+      var vh=innerHeight||document.documentElement.clientHeight||800, still=[];
+      pending.forEach(function(e){
+        var r=e.getBoundingClientRect();
+        if(r.top>=vh*0.92){ still.push(e); return; }        // still below the fold
+        if(r.top<vh*0.92 && r.bottom>-40){                  // entering view → animate in
+          var sibs=[].slice.call(e.parentElement.querySelectorAll(':scope > .rise'));
+          e.style.transitionDelay=Math.min(Math.max(0,sibs.indexOf(e))*60,240)+"ms";
+        } else { e.style.transition="none"; }               // already scrolled past → just show
+        e.classList.add('in');
+      });
+      pending=still;
+    }
+    reveal();
+    var ticking=false;
+    addEventListener('scroll',function(){ if(!ticking){ticking=true;requestAnimationFrame(function(){reveal();ticking=false;});} },{passive:true});
+    addEventListener('resize',reveal,{passive:true});
+  }
+
+  /* ---------- screen router ---------- */
+  var screens={landing:document.getElementById("landing"),login:document.getElementById("login"),onboarding:document.getElementById("onboarding")};
+  var current="landing";
+  function show(name){
+    if(!screens[name]||name===current) { if(name==="landing"){} }
+    Object.keys(screens).forEach(function(k){ screens[k].classList.toggle("active", k===name); });
+    current=name;
+    window.scrollTo(0,0);
+    prints.forEach(function(p){ if(p.c.getBoundingClientRect().width) p.resize(); });
+    if(name==="onboarding") enterOnboarding();
+    if(name==="landing"){ runReader(heroReader, vp("hero")._vp); runReader(featReader, null); }
+  }
+  document.addEventListener("click",function(e){
+    var t=e.target.closest("[data-go]"); if(t){ e.preventDefault(); show(t.getAttribute("data-go")); }
+  });
+  // smooth anchor scroll within landing
+  document.querySelectorAll('.nav-links a, .foot-links a[href^="#"]').forEach(function(a){
+    a.addEventListener("click",function(e){
+      var id=a.getAttribute("href"); if(id&&id.length>1&&document.querySelector(id)){
+        e.preventDefault(); document.querySelector(id).scrollIntoView({behavior:reduce?"auto":"smooth",block:"start"});
+      }
+    });
+  });
+
+  /* ---------- login toggle ---------- */
+  var signup=false;
+  var at=document.getElementById("authTitle"),al=document.getElementById("authLede"),
+      asw=document.getElementById("authSwap"),atog=document.getElementById("authToggle");
+  document.getElementById("authToggle").addEventListener("click",function(e){
+    e.preventDefault(); signup=!signup;
+    at.textContent=signup?"Create your voice":"Sign in";
+    al.textContent=signup?"One account for the app and settings, never your voice.":"Only for the app and optional backup. Your voice stays on your Mac.";
+    asw.innerHTML=signup?'Already have Voicey? <a href="#" id="authToggle">Sign in</a>':'New here? <a href="#" id="authToggle">Create your voice</a>';
+    document.getElementById("authToggle").addEventListener("click",arguments.callee);
+  });
+  document.getElementById("authForm").addEventListener("submit",function(e){
+    e.preventDefault(); show("onboarding");
+  });
+
+  /* ---------- onboarding logic ---------- */
+  var step=0, MAX=4;
+  var prompts=[
+    "The morning light moved slowly across the kitchen floor.",
+    "I never expected the answer to be quite that simple.",
+    "She counted the seconds between the lightning and the thunder.",
+    "We took the long way home just to keep talking.",
+    "Everything I needed had been sitting on the shelf all along.",
+    "Read this last one the way you'd tell a friend."
+  ];
+  var recLine=0, recording=false, recElapsed=0, recTick=null;
+  var obPrompt=document.getElementById("obPrompt");
+  var obReadyReader=makeReader(document.getElementById("obReady"),"You're not reading this. You're hearing yourself.");
+  function setStep(s){
+    if(recording){ recording=false; clearInterval(recTick); }
+    stopMic(); // never keep the mic live once we leave the record step
+    step=Math.max(0,Math.min(MAX,s));
+    document.querySelectorAll("#onboarding .ob-step").forEach(function(el){
+      el.classList.toggle("active", +el.getAttribute("data-step")===step);
+    });
+    document.querySelectorAll(".ob-steps i").forEach(function(i){
+      i.classList.toggle("done", +i.getAttribute("data-si")<=step);
+    });
+    document.getElementById("obBack").style.visibility = step===0 ? "hidden":"visible";
+    var next=document.getElementById("obNext");
+    next.textContent = step===MAX ? "Open Voicey" : (step===1 ? "Looks good" : "Continue");
+    if(step===1) loadRecStep();
+    if(step===2) runCraft();
+    if(step===3){ var p=vp("ob3")._vp; runReader(obReadyReader,p); }
+  }
+  function enterOnboarding(){ setStep(0); recLine=0; }
+
+  var savedLines={};
+  function loadRecStep(){
+    clearInterval(recTick); if(recording){ recording=false; } stopMic();
+    document.getElementById("recLine").textContent=recLine+1;
+    obPrompt.innerHTML=""; makeReader(obPrompt, prompts[recLine]);
+    recElapsed=0;
+    recBtn.classList.remove("recording");
+    document.getElementById("recLabel").textContent="Start recording";
+    document.getElementById("recTimer").textContent = savedLines[recLine] ? "✓ line saved" : "";
+    var vpr=vp("obrec")&&vp("obrec")._vp; if(vpr) vpr.level=0.4;
+  }
+
+  /* real microphone: the record waveform is driven by live input level */
+  var micStream=null, micCtx=null, micAnalyser=null, micBuf=null, micRAF=null;
+  function pumpMic(){
+    if(!micAnalyser) return;
+    micAnalyser.getByteTimeDomainData(micBuf);
+    var sum=0; for(var i=0;i<micBuf.length;i++){ var v=(micBuf[i]-128)/128; sum+=v*v; }
+    var vpr=vp("obrec")&&vp("obrec")._vp;
+    if(vpr) vpr.level=Math.max(0.12, Math.min(1, Math.sqrt(sum/micBuf.length)*3.4));
+    micRAF=requestAnimationFrame(pumpMic);
+  }
+  function startMic(){
+    if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia) return Promise.resolve(false);
+    return navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true}})
+      .then(function(stream){
+        micStream=stream;
+        micCtx=new (window.AudioContext||window.webkitAudioContext)();
+        var src=micCtx.createMediaStreamSource(stream);
+        micAnalyser=micCtx.createAnalyser(); micAnalyser.fftSize=1024;
+        micBuf=new Uint8Array(micAnalyser.fftSize); src.connect(micAnalyser);
+        pumpMic(); return true;
+      }).catch(function(){ return false; });
+  }
+  function stopMic(){
+    if(micRAF){ cancelAnimationFrame(micRAF); micRAF=null; }
+    if(micStream){ micStream.getTracks().forEach(function(t){t.stop();}); micStream=null; }
+    if(micCtx){ try{micCtx.close();}catch(e){} micCtx=null; }
+    micAnalyser=null;
+    var vpr=vp("obrec")&&vp("obrec")._vp; if(vpr) vpr.level=0.4;
+  }
+
+  var recBtn=document.getElementById("recBtn");
+  recBtn.addEventListener("click",function(){
+    if(!recording){
+      document.getElementById("recLabel").textContent="Starting mic…";
+      document.getElementById("recTimer").textContent="";
+      startMic().then(function(ok){
+        if(!ok){
+          document.getElementById("recLabel").textContent="Start recording";
+          document.getElementById("recTimer").innerHTML='<span style="color:var(--signal)">Microphone is blocked. Allow access in your browser to record.</span>';
+          return;
+        }
+        recording=true; recElapsed=0;
+        recBtn.classList.add("recording");
+        document.getElementById("recLabel").textContent="Stop";
+        recTick=setInterval(function(){ recElapsed+=0.1;
+          document.getElementById("recTimer").textContent="● recording "+recElapsed.toFixed(1)+"s";
+        },100);
+      });
+    } else {
+      recording=false; clearInterval(recTick); stopMic();
+      recBtn.classList.remove("recording");
+      savedLines[recLine]=true;
+      document.getElementById("recTimer").textContent="✓ line saved";
+      document.getElementById("recLabel").textContent="Re-record";
+    }
+  });
+
+  var craftRun=null;
+  function runCraft(){
+    clearInterval(craftRun);
+    var pct=0, bar=document.getElementById("craftBar"), lab=document.getElementById("craftPct"),
+        msg=document.getElementById("craftMsg");
+    var msgs=[[0,"Learning your tone and pace, locally, with nothing uploaded."],
+              [34,"Matching sounds to the way you actually speak."],
+              [68,"Smoothing the joins so sentences flow."],
+              [92,"Almost there. Finishing your voice."]];
+    if(reduce){ bar.style.width="100%"; lab.textContent="100%"; return; }
+    craftRun=setInterval(function(){
+      pct=Math.min(100,pct+ (pct<80?1.6:0.7));
+      bar.style.width=pct+"%"; lab.textContent=Math.round(pct)+"%";
+      for(var i=msgs.length-1;i>=0;i--){ if(pct>=msgs[i][0]){ if(msg.textContent!==msgs[i][1]) msg.textContent=msgs[i][1]; break; } }
+      if(pct>=100){ clearInterval(craftRun); }
+    },60);
+  }
+
+  document.getElementById("obNext").addEventListener("click",function(){
+    if(step===1 && recLine<5){ recLine++; loadRecStep(); return; }
+    if(step===MAX){ show("landing"); return; }
+    setStep(step+1);
+  });
+  document.getElementById("obBack").addEventListener("click",function(){
+    if(step===1 && recLine>0){ recLine--; loadRecStep(); return; }
+    setStep(step-1);
+  });
+
+  /* optional account step — mockup only (an Artifact can't reach a real backend) */
+  document.getElementById("acctForm").addEventListener("submit",function(e){
+    e.preventDefault();
+    var em=(document.getElementById("obEmail").value||"").trim();
+    var msg=document.getElementById("acctMsg");
+    if(!em){ msg.innerHTML='<span style="color:var(--signal)">Enter an email, or skip to keep it only on this Mac.</span>'; return; }
+    msg.innerHTML='<span style="color:#57d68a">Sync on. Your voice is locked so only you can unlock it.</span>';
+    setTimeout(function(){ show("landing"); }, 1500);
+  });
+  document.getElementById("acctSkip").addEventListener("click",function(){ show("landing"); });
+
+  /* ---------- boot ---------- */
+  window.addEventListener("resize", function(){ prints.forEach(function(p){ if(p.c.getBoundingClientRect().width) p.resize(); }); });
+  initPrints();
+  initReveals();
+  if(!reduce) requestAnimationFrame(loop);
+  runReader(heroReader, vp("hero")._vp);
+  runReader(featReader, null);
+  // Open straight into voice creation; the landing stays one tap away.
+  show("onboarding");
+})();
+</script>

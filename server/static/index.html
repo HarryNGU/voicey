@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Voice Recording Studio</title>
+<style>
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #121212; color: #eee; margin: 0; padding: 40px 20px;
+    display: flex; flex-direction: column; align-items: center;
+  }
+  .card {
+    background: #1e1e1e; border-radius: 16px; padding: 32px;
+    max-width: 640px; width: 100%; box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+  }
+  .category { color: #7fb8ff; font-size: 13px; text-transform: uppercase; letter-spacing: 0.08em; }
+  .instructions { color: #aaa; font-size: 14px; margin: 8px 0 20px; }
+  .prompt-text { font-size: 24px; line-height: 1.5; margin-bottom: 28px; }
+  .prompt-text b { color: #ffd479; }
+  .controls { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  button {
+    background: #333; color: #fff; border: none; border-radius: 8px;
+    padding: 12px 20px; font-size: 15px; cursor: pointer;
+  }
+  button:hover { background: #444; }
+  button.record { background: #b33; }
+  button.record.recording { background: #e33; animation: pulse 1s infinite; }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.6; } }
+  .progress { margin-top: 24px; color: #888; font-size: 13px; }
+  .progress-bar { height: 6px; background: #333; border-radius: 3px; margin-top: 8px; overflow: hidden; }
+  .progress-fill { height: 100%; background: #4caf50; transition: width 0.2s; }
+  .status { margin-top: 12px; font-size: 13px; color: #7fb8ff; min-height: 18px; }
+  .nav-list { margin-top: 30px; max-height: 200px; overflow-y: auto; font-size: 12px; color: #777; }
+  .nav-list .done { color: #4caf50; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="category" id="category">Loading…</div>
+    <div class="instructions" id="instructions"></div>
+    <div class="prompt-text" id="promptText"></div>
+
+    <div class="controls">
+      <button id="recordBtn" class="record">● Record</button>
+      <button id="playBtn" disabled>▶ Play back</button>
+      <button id="redoBtn" disabled>↺ Redo</button>
+      <button id="prevBtn">← Prev</button>
+      <button id="nextBtn">Next →</button>
+    </div>
+
+    <div class="status" id="status"></div>
+
+    <div class="progress">
+      <span id="progressLabel"></span>
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
